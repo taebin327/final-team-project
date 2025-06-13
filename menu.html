@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>교내 식단 안내</title>
+    <style>
+      :root {
+        --main-color: #003366;
+        --bg-color: #f5f7fa;
+        --box-color: #ffffff;
+        --text-color: #333;
+      }
+
+      body {
+        font-family: 'Segoe UI', sans-serif;
+        margin: 0;
+        background-color: var(--bg-color);
+      }
+
+      header {
+        background-color: var(--main-color);
+        color: white;
+        text-align: center;
+        padding: 1.2rem;
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+
+      .container {
+        max-width: 960px;
+        margin: auto;
+        padding: 1.2rem;
+      }
+
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-bottom: 1rem;
+      }
+
+      .tab {
+        background-color: #e0e6ed;
+        color: var(--text-color);
+        padding: 0.6rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        flex: 1 1 140px;
+        text-align: center;
+        transition: background 0.3s;
+      }
+
+      .tab.active {
+        background-color: var(--main-color);
+        color: white;
+      }
+
+      .date-nav {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        margin-bottom: 1.5rem;
+      }
+
+      .date-nav button {
+        font-size: 1.1rem;
+        background-color: transparent;
+        color: var(--main-color);
+        border: 1px solid var(--main-color);
+        padding: 0.4rem 0.9rem;
+        border-radius: 4px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .date-nav button:hover {
+        background-color: var(--main-color);
+        color: white;
+      }
+
+      .date-display {
+        font-size: 1rem;
+        font-weight: bold;
+        color: var(--text-color);
+        white-space: nowrap;
+      }
+
+      .meal-section {
+        background-color: var(--box-color);
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1rem;
+        padding: 1rem;
+      }
+
+      .meal-section h3 {
+        margin-top: 0;
+        font-size: 1.1rem;
+        color: var(--main-color);
+      }
+
+      .sub-menu-container {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+
+      .sub-menu-card {
+        background-color: #f0f4f8;
+        border-radius: 8px;
+        padding: 1rem;
+        flex: 1 1 250px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      .sub-menu-card h4 {
+        margin: 0 0 0.5rem 0;
+        color: var(--main-color);
+        font-size: 1rem;
+      }
+
+      .sub-menu-card p {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+
+      .sub-menu-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      @media (max-width: 600px) {
+        .tab {
+          flex: 1 1 100%;
+        }
+
+        .date-nav {
+          flex-wrap: nowrap;
+          justify-content: space-between;
+        }
+
+        .date-nav button {
+          flex-shrink: 0;
+          max-width: 90px;
+          padding: 0.3rem 0.5rem;
+          font-size: 0.9rem;
+        }
+
+        .date-display {
+          flex-grow: 1;
+          text-align: center;
+          font-size: 0.95rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>교내 식단 안내</header>
+
+    <div class="container">
+      <div class="tabs" id="restaurantTabs">
+        <div class="tab active" data-restaurant="student">학생식당</div>
+        <div class="tab" data-restaurant="staff">교직원식당</div>
+      </div>
+
+      <div class="date-nav">
+        <button id="prevDay">◀ 이전</button>
+        <div class="date-display" id="currentDate">날짜</div>
+        <button id="nextDay">다음 ▶</button>
+      </div>
+
+      <div id="mealInfoContainer"></div>
+    </div>
+
+    <script>
+      const restaurantTabs = document.querySelectorAll('.tab')
+      const currentDateDisplay = document.getElementById('currentDate')
+      const prevBtn = document.getElementById('prevDay')
+      const nextBtn = document.getElementById('nextDay')
+      const mealInfoContainer = document.getElementById('mealInfoContainer')
+
+      let currentDate = new Date()
+      let currentRestaurant = 'student'
+
+      const mealTimes = {
+        student: {
+          weekday: [
+            {
+              label: '조식 (08:10~10:00)',
+              submenus: [
+                { label: '1,000원 아침(학생)', menu: '미역국, 밥, 김치' },
+              ],
+            },
+            {
+              label: '분식&간식 (10:00~17:00)',
+              submenus: [{ label: '분식코너', menu: '떡순튀, 아이스크림' }],
+            },
+            {
+              label: '중식 (11:00~14:00)',
+              submenus: [
+                { label: '한식코너', menu: '불고기, 김치, 밥, 국' },
+                { label: '일품코너', menu: '돈까스덮밥, 미소국' },
+                { label: '면코너', menu: '잔치국수, 김말이튀김' },
+              ],
+            },
+            { label: '석식 (17:00~19:00)' },
+          ],
+          weekend: [
+            {
+              label: '중식 (11:30~13:30)',
+              submenus: [
+                { label: '주말 중식', menu: '제육덮밥, 김치, 미역국' },
+              ],
+            },
+            {
+              label: '석식 (17:00~19:00)',
+              submenus: [
+                { label: '주말 석식', menu: '김치볶음밥, 계란국, 단무지' },
+              ],
+            },
+          ],
+        },
+        staff: {
+          weekday: [
+            {
+              label: '조식 (08:10~10:00)',
+              submenus: [
+                { label: '교직원 조식', menu: '북엇국, 계란말이, 밥, 김치' },
+              ],
+            },
+            {
+              label: '중식 (11:00~14:00)',
+              submenus: [
+                { label: '한식코너', menu: '제육볶음, 된장국, 밥, 김치' },
+                { label: '일품코너', menu: '짜장밥, 계란국' },
+              ],
+            },
+            {
+              label: '석식 (17:00~19:00)',
+              submenus: [
+                { label: '석식', menu: '김치찌개, 생선구이, 밥, 김치' },
+              ],
+            },
+          ],
+          weekend: [
+            {
+              label: '중식 (11:30~13:30)',
+              submenus: [{ label: '주말 중식', menu: '닭갈비, 밥, 국, 김치' }],
+            },
+            {
+              label: '석식 (17:00~19:00)',
+              submenus: [
+                { label: '주말 석식', menu: '된장찌개, 계란말이, 밥, 김치' },
+              ],
+            },
+          ],
+        },
+      }
+
+      function formatDate(date) {
+        return date.toISOString().split('T')[0]
+      }
+
+      function getDayString(date) {
+        const days = ['일', '월', '화', '수', '목', '금', '토']
+        return `${formatDate(date)} (${days[date.getDay()]})`
+      }
+
+      function isWeekend(date) {
+        const day = date.getDay()
+        return day === 0 || day === 6
+      }
+
+      function getMealsForDay() {
+        return isWeekend(currentDate)
+          ? mealTimes[currentRestaurant].weekend
+          : mealTimes[currentRestaurant].weekday
+      }
+
+      function renderMeals() {
+        currentDateDisplay.textContent = getDayString(currentDate)
+        mealInfoContainer.innerHTML = ''
+
+        const meals = getMealsForDay()
+
+        meals.forEach((meal) => {
+          const section = document.createElement('div')
+          section.className = 'meal-section'
+
+          if (meal.submenus) {
+            const subCardsHTML = meal.submenus
+              .map(
+                (sub) => `
+                <div class="sub-menu-card">
+                  <h4>${sub.label}</h4>
+                  <p>${sub.menu}</p>
+                </div>`
+              )
+              .join('')
+            section.innerHTML = `
+              <h3>${meal.label}</h3>
+              <div class="sub-menu-container">${subCardsHTML}</div>
+            `
+          } else {
+            section.innerHTML = `<h3>${meal.label}</h3><p>🍱 메뉴 : 불고기, 김치, 밥, 국</p>`
+          }
+
+          mealInfoContainer.appendChild(section)
+        })
+      }
+
+      prevBtn.addEventListener('click', () => {
+        currentDate.setDate(currentDate.getDate() - 1)
+        renderMeals()
+      })
+
+      nextBtn.addEventListener('click', () => {
+        currentDate.setDate(currentDate.getDate() + 1)
+        renderMeals()
+      })
+
+      restaurantTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          restaurantTabs.forEach((t) => t.classList.remove('active'))
+          tab.classList.add('active')
+          currentRestaurant = tab.dataset.restaurant
+          renderMeals()
+        })
+      })
+
+      renderMeals()
+    </script>
+  </body>
+</html>
